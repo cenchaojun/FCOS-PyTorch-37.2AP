@@ -9,6 +9,8 @@ import matplotlib.patches as patches
 import  matplotlib.pyplot as plt
 from matplotlib.ticker import NullLocator
 
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 def preprocess_img(image,input_ksize):
     '''
     resize image and bboxes 
@@ -64,7 +66,8 @@ if __name__=="__main__":
         use_p5=True
         
         #head
-        class_num=80
+        # 之前是80个类别,现在改为1个了
+        class_num=1
         use_GN_head=True
         prior=0.01
         add_centerness=True
@@ -77,16 +80,17 @@ if __name__=="__main__":
         #inference
         score_threshold=0.3
         nms_iou_threshold=0.4
-        max_detection_boxes_num=300
+        max_detection_boxes_num=600
 
     model=FCOSDetector(mode="inference",config=Config)
     # model=torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
     # print("INFO===>success convert BN to SyncBN")
-    model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("./checkpoint/voc_78.7.pth",map_location=torch.device('cpu')))
+    # 如果遇到了权重不匹配，需要把并行训练这个模式给关掉
+    # model = torch.nn.DataParallel(model)
+    model.load_state_dict(torch.load("./checkpoint/model_30.pth",map_location=torch.device('cpu')))
     # model=convertSyncBNtoBN(model)
     # print("INFO===>success convert SyncBN to BN")
-    model=model.eval()
+    model=model.cuda().eval()
     print("===>success loading model")
 
     import os
@@ -98,7 +102,7 @@ if __name__=="__main__":
         img=cv2.cvtColor(img_pad.copy(),cv2.COLOR_BGR2RGB)
         img1=transforms.ToTensor()(img)
         img1= transforms.Normalize([0.485,0.456,0.406], [0.229,0.224,0.225],inplace=True)(img1)
-        img1=img1
+        img1=img1.cuda()
         
 
         start_t=time.time()
@@ -129,7 +133,7 @@ if __name__=="__main__":
         plt.axis('off')
         plt.gca().xaxis.set_major_locator(NullLocator())
         plt.gca().yaxis.set_major_locator(NullLocator())
-        plt.savefig('out_images/{}'.format(name), bbox_inches='tight', pad_inches=0.0)
+        plt.savefig('./out_images/{}'.format(name), bbox_inches='tight', pad_inches=0.0)
         plt.close()
 
 

@@ -6,7 +6,6 @@ from .loss import GenTargets,LOSS,coords_fmap2orig
 import torch
 from .config import DefaultConfig
 
-print("test")
 
 class FCOS(nn.Module):
     

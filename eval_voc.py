@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import cv2
-
+from tqdm import tqdm
 def sort_by_score(pred_boxes, pred_labels, pred_scores):
     score_seq = [(-score).argsort() for index, score in enumerate(pred_scores)]
     pred_boxes = [sample_boxes[mask] for sample_boxes, mask in zip(pred_boxes, score_seq)]
@@ -124,20 +124,20 @@ def eval_ap_2d(gt_boxes, gt_labels, pred_boxes, pred_labels, pred_scores, iou_th
 
 if __name__=="__main__":
     from model.fcos import FCOSDetector
-    from demo import convertSyncBNtoBN
+    from detect import convertSyncBNtoBN
     from dataset.VOC_dataset import VOCDataset
     
 
-    eval_dataset = VOCDataset(root_dir='/Users/zhangzhenghao/VOC0712', resize_size=[800, 1333],
-                               split='test', use_difficult=False, is_train=False, augment=None)
+    eval_dataset = VOCDataset(root_dir='/home/cen/PycharmProjects/dataset/10m_tassel_dataset_voc/voc2007', resize_size=[800, 1333],
+                               split='val', use_difficult=False, is_train=False, augment=None)
     print("INFO===>eval dataset has %d imgs"%len(eval_dataset))
     eval_loader=torch.utils.data.DataLoader(eval_dataset,batch_size=1,shuffle=False,collate_fn=eval_dataset.collate_fn)
 
     model=FCOSDetector(mode="inference")
     # model=torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
     # print("INFO===>success convert BN to SyncBN")
-    model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("./checkpoint/voc_78.7.pth",map_location=torch.device('cpu')))
+    # model = torch.nn.DataParallel(model)
+    model.load_state_dict(torch.load("./checkpoint/model_30.pth",map_location=torch.device('cpu')))
     # model=convertSyncBNtoBN(model)
     # print("INFO===>success convert SyncBN to BN")
     model=model.cuda().eval()
@@ -149,7 +149,7 @@ if __name__=="__main__":
     pred_classes=[]
     pred_scores=[]
     num=0
-    for img,boxes,classes in eval_loader:
+    for img,boxes,classes in tqdm(eval_loader):
         with torch.no_grad():
             out=model(img.cuda())
             pred_boxes.append(out[2][0].cpu().numpy())

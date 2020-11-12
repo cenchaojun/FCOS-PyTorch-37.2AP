@@ -11,9 +11,9 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--epochs", type=int, default=30, help="number of epochs")
-parser.add_argument("--batch_size", type=int, default=16, help="size of each image batch")
+parser.add_argument("--batch_size", type=int, default=4, help="size of each image batch")
 parser.add_argument("--n_cpu", type=int, default=4, help="number of cpu threads to use during batch generation")
-parser.add_argument("--n_gpu", type=str, default='0,1', help="number of cpu threads to use during batch generation")
+parser.add_argument("--n_gpu", type=str, default='0', help="number of cpu threads to use during batch generation")
 opt = parser.parse_args()
 os.environ["CUDA_VISIBLE_DEVICES"] = opt.n_gpu
 torch.manual_seed(0)
@@ -24,11 +24,12 @@ cudnn.benchmark = False
 cudnn.deterministic = True
 random.seed(0)
 transform = Transforms()
-train_dataset = VOCDataset(root_dir='/Users/VOC0712',resize_size=[800,1333],
+#  因为增加了augment，所以遮盖batchsize 的大小就变小了
+train_dataset = VOCDataset(root_dir='/home/cen/PycharmProjects/dataset/10m_tassel_dataset_voc/voc2007',resize_size=[800,1333],
                            split='trainval',use_difficult=False,is_train=True,augment=transform)
 
 model = FCOSDetector(mode="training").cuda()
-model = torch.nn.DataParallel(model)
+# model = torch.nn.DataParallel(model)
 # model.load_state_dict(torch.load('/mnt/cephfs_new_wj/vc/zhangzhenghao/FCOS.Pytorch/output1/model_6.pth'))
 
 BATCH_SIZE = opt.batch_size

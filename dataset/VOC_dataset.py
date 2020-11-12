@@ -18,36 +18,44 @@ def flip(img, boxes):
     return img, boxes
 
 class VOCDataset(torch.utils.data.Dataset):
+    #自己的数据集
     CLASSES_NAME = (
         "__background__ ",
-        "aeroplane",
-        "bicycle",
-        "bird",
-        "boat",
-        "bottle",
-        "bus",
-        "car",
-        "cat",
-        "chair",
-        "cow",
-        "diningtable",
-        "dog",
-        "horse",
-        "motorbike",
-        "person",
-        "pottedplant",
-        "sheep",
-        "sofa",
-        "train",
-        "tvmonitor",
+        "tassel",
     )
+    # CLASSES_NAME = (
+    #     "__background__ ",
+    #     "aeroplane",
+    #     "bicycle",
+    #     "bird",
+    #     "boat",
+    #     "bottle",
+    #     "bus",
+    #     "car",
+    #     "cat",
+    #     "chair",
+    #     "cow",
+    #     "diningtable",
+    #     "dog",
+    #     "horse",
+    #     "motorbike",
+    #     "person",
+    #     "pottedplant",
+    #     "sheep",
+    #     "sofa",
+    #     "train",
+    #     "tvmonitor",
+    # )
     def __init__(self,root_dir,resize_size=[800,1333],split='trainval',use_difficult=False,is_train = True, augment = None):
         self.root=root_dir
         self.use_difficult=use_difficult
         self.imgset=split
 
         self._annopath = os.path.join(self.root, "Annotations", "%s.xml")
-        self._imgpath = os.path.join(self.root, "JPEGImages", "%s.jpg")
+        # 自己的数据集格式是.png 结尾的，所以要改一下
+        self._imgpath = os.path.join(self.root, "JPEGImages", "%s.png")
+        # voc数据集
+        # self._imgpath = os.path.join(self.root, "JPEGImages", "%s.jpg")
         self._imgsetpath = os.path.join(self.root, "ImageSets", "Main", "%s.txt")
 
         with open(self._imgsetpath%self.imgset) as f:
