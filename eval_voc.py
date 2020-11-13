@@ -2,6 +2,10 @@ import torch
 import numpy as np
 import cv2
 from tqdm import tqdm
+from collections import OrderedDict
+import pandas as pd
+
+
 def sort_by_score(pred_boxes, pred_labels, pred_scores):
     score_seq = [(-score).argsort() for index, score in enumerate(pred_scores)]
     pred_boxes = [sample_boxes[mask] for sample_boxes, mask in zip(pred_boxes, score_seq)]
@@ -121,12 +125,7 @@ def eval_ap_2d(gt_boxes, gt_labels, pred_boxes, pred_labels, pred_scores, iou_th
         precision = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
         ap = _compute_ap(recall, precision)
         all_ap[label] = ap
-        print("precision: {}".format(precision))
-        print("recall: {}".format(recall))
-        print("fp {}".format(fp))
-        print("tp{} ".format(tp))
-        print("precision len {}".format(len(precision)))
-        print("recall len {}".format(len(recall)))
+
 
         # print(recall, precision)
 
@@ -171,6 +170,30 @@ if __name__=="__main__":
 
     pred_boxes,pred_classes,pred_scores=sort_by_score(pred_boxes,pred_classes,pred_scores)
     all_AP,precision, recall, fp, tp=eval_ap_2d(gt_boxes,gt_classes,pred_boxes,pred_classes,pred_scores,0.5,len(eval_dataset.CLASSES_NAME))
+    # 之前放在了上面，可是我感觉没什么问题呀，只有一类，放在上面和下面没有什么问题吧
+    # 有一个注意点没有想到，那就是这个precision和recall的格式是np.array格式，和之前的还不一样
+    print("precision: {}".format(precision))
+    print("recall: {}".format(recall))
+    print("fp {}".format(fp))
+    print("tp{} ".format(tp))
+    print("precision size {}".format(precision.size))
+    print("recall size {}".format(recall.size))
+    print("precision shape {}".format(precision.shape))
+    print("recall shape {}".format(recall.shape))
+    # 我把这个precision和recall的值都保存下来，我就不相信，结果还不一样
+    precision_data = pd.DataFrame(precision)
+    recall_data = pd.DataFrame(recall)
+    precision_data.to_csv('precision.csv')
+    recall_data.to_csv('recall.csv')
+    # 输出一下precision和recall的均值，看行不行吧
+    print("precision mean {0}".format(np.mean(precision)))
+    print("recall mean {0}".format(np.mean(recall)))
+    # 将precison和recall的曲线保存下来，看看什么情况吧
+    # 使用的是OrderedDict这个库
+    pr_purve = OrderedDict(zip(recall,precision))
+    print("pr-purve len {0}".format(len(pr_purve)))
+    df = pd.DataFrame.from_dict(pr_purve,orient='index')
+    df.to_csv('precision_recall_purve.csv')
     print("all classes AP=====>\n")
     for key,value in tqdm(all_AP.items()):
         print('ap for {} is {}'.format(eval_dataset.id2name[int(key)],value))
