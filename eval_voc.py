@@ -45,10 +45,12 @@ def _compute_ap(recall, precision):
     """
     # correct AP calculation
     # first append sentinel values at the end
+    # 得到一些数值，将前面的0和后面的1加到这个数组中去
     mrec = np.concatenate(([0.], recall, [1.]))
     mpre = np.concatenate(([0.], precision, [0.]))
 
     # compute the precision envelope
+    # 用的也是插值法。好像是第二种吧
     for i in range(mpre.size - 1, 0, -1):
         mpre[i - 1] = np.maximum(mpre[i - 1], mpre[i])
 
@@ -119,9 +121,16 @@ def eval_ap_2d(gt_boxes, gt_labels, pred_boxes, pred_labels, pred_scores, iou_th
         precision = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
         ap = _compute_ap(recall, precision)
         all_ap[label] = ap
-        # print(recall, precision)
-    return all_ap
+        print("precision: {}".format(precision))
+        print("recall: {}".format(recall))
+        print("fp {}".format(fp))
+        print("tp{} ".format(tp))
+        print("precision len {}".format(len(precision)))
+        print("recall len {}".format(len(recall)))
 
+        # print(recall, precision)
+
+    return all_ap, precision, recall, fp, tp
 if __name__=="__main__":
     from model.fcos import FCOSDetector
     from detect import convertSyncBNtoBN
@@ -161,12 +170,12 @@ if __name__=="__main__":
         print(num,end='\r')
 
     pred_boxes,pred_classes,pred_scores=sort_by_score(pred_boxes,pred_classes,pred_scores)
-    all_AP=eval_ap_2d(gt_boxes,gt_classes,pred_boxes,pred_classes,pred_scores,0.5,len(eval_dataset.CLASSES_NAME))
+    all_AP,precision, recall, fp, tp=eval_ap_2d(gt_boxes,gt_classes,pred_boxes,pred_classes,pred_scores,0.5,len(eval_dataset.CLASSES_NAME))
     print("all classes AP=====>\n")
-    for key,value in all_AP.items():
+    for key,value in tqdm(all_AP.items()):
         print('ap for {} is {}'.format(eval_dataset.id2name[int(key)],value))
     mAP=0.
-    for class_id,class_mAP in all_AP.items():
+    for class_id,class_mAP in tqdm(all_AP.items()):
         mAP+=float(class_mAP)
     mAP/=(len(eval_dataset.CLASSES_NAME)-1)
     print("mAP=====>%.3f\n"%mAP)
