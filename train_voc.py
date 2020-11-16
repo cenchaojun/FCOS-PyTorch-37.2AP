@@ -8,9 +8,10 @@ import numpy as np
 import random
 import torch.backends.cudnn as cudnn
 import argparse
+import pandas as pd
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--epochs", type=int, default=60, help="number of epochs")
+parser.add_argument("--epochs", type=int, default=1, help="number of epochs")
 parser.add_argument("--batch_size", type=int, default=4, help="size of each image batch")
 parser.add_argument("--n_cpu", type=int, default=4, help="number of cpu threads to use during batch generation")
 parser.add_argument("--n_gpu", type=str, default='0', help="number of cpu threads to use during batch generation")
@@ -59,7 +60,8 @@ optimizer = torch.optim.SGD(model.parameters(),lr =LR_INIT,momentum=0.9,weight_d
 
 
 model.train()
-
+# 加入这个保存的变量，使得最后能够保存数据
+record_pd = pd.DataFrame(columns=['global_step', 'epoch', 'cls_loss', 'cnt_loss', 'reg_loss', 'cost_time', 'lr', 'total_loss'])
 for epoch in range(EPOCHS):
     for epoch_step, data in enumerate(train_loader):
 
@@ -91,16 +93,32 @@ for epoch in range(EPOCHS):
 
         end_time = time.time()
         cost_time = int((end_time - start_time) * 1000)
+        #TODO 保存一下模型的输出曲线，保存在一个文件夹中
         print(
             "global_steps:%d epoch:%d steps:%d/%d cls_loss:%.4f cnt_loss:%.4f reg_loss:%.4f cost_time:%dms lr=%.4e total_loss:%.4f" % \
             (GLOBAL_STEPS, epoch + 1, epoch_step + 1, steps_per_epoch, losses[0].mean(), losses[1].mean(),
              losses[2].mean(), cost_time, lr, loss.mean()))
+        # 明白了tensor转为变量的的方法
+        # clc_loss = losses[0].mean().item()
+        # cnt_loss = losses[1].mean().item()
+        # reg_loss = losses[2].mean().item()
+        # total_loss = loss.mean().item()
+        # print(clc_loss)
+        # print(cnt_loss)
+        # print(reg_loss)
+        # print(total_loss)
+        # record_pd = pd.DataFrame(
+        #     columns=['global_step', 'epoch', 'cls_loss', 'cnt_loss', 'reg_loss', 'cost_time', 'lr', 'total_loss'])
+
+        new_row = {'global_step': GLOBAL_STEPS, 'epoch': epoch, 'cls_loss': losses[0].mean().item(), 'cnt_loss': losses[1].mean().item(), 'reg_loss': losses[2].mean().item(), 'cost_time':cost_time, 'lr':lr, 'total_loss': loss.mean().item()}
+        record_pd = record_pd.append(new_row, ignore_index=True)
+
 
         GLOBAL_STEPS += 1
 
     torch.save(model.state_dict(),
-               "./checkpoint/model_{}.pth".format(epoch + 1))
-
+               "./checkpoint60/model_{}.pth".format(epoch + 1))
+record_pd.to_csv('loss.csv',index=0)
 
 
 

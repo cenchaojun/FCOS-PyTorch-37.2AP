@@ -3,17 +3,25 @@ import math, random
 from PIL import Image
 import random
 import torchvision.transforms as transforms
+import numpy as np
 class Transforms(object):
     def __init__(self):
         pass
 
     def __call__(self, img, boxes):
+        '''
+        这个一块还是有点问题的，就是要们进行了数据增强操作，要们不进行，所以这一点还是不太好的
+        所以进行修改一下，使得每次数据增强都能用到一点
+        '''
         if random.random() < 0.3:
             img, boxes = colorJitter(img, boxes)
         if random.random() < 0.5:
             img, boxes = random_rotation(img, boxes)
         if random.random() < 0.5:
             img, boxes = random_crop_resize(img, boxes)
+        # 下面是自己实现的random earsing
+        # if random.random() < 0.5:
+        #     img, boxes = random_erasing(img,boxes)
         return img, boxes
 
 def colorJitter(img, boxes, brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1):
@@ -112,3 +120,32 @@ def random_crop_resize(img, boxes, crop_scale_min=0.2, aspect_ratio=[3./4, 4./3]
         # boxes *= torch.FloatTensor([sw,sh,sw,sh])
     boxes = boxes.numpy()
     return img, boxes
+
+def random_erasing(img, boxes):
+    '''
+    进行随机的模拟遮挡，这个和上面的随机系列还是不太一样的
+    TODO  还有一个需要注意到的是，尽量放在这个框内进行这个算法，而不是对整个图像进行操作
+    '''
+    while True:
+        sl = 0.02
+        sh = 0.4
+        r1 = 0.3
+        r2 = 3
+        img_h, img_w = img.size
+        img_c = 3
+        img_area = img_h*img_w
+        # np.random.uniform(a,b)的意思就是在a和b之间随机去一个值
+        mask_area = np.random.uniform(sl,sh) * img_area
+        mask_aspect_ratio = np.random.uniform(r1,r2)
+        mask_w = int(np.sqrt(mask_area/mask_aspect_ratio))
+        mask_h = int(np.sqrt(mask_area*mask_aspect_ratio))
+        mask = np.random.rand(mask_h,mask_w,img_c) *255
+        left = np.random.randint(0,img_w)
+        top = np.random.randint(0,img_h)
+        right = left + mask_w
+        bottom = top + mask_h
+        if right <= img_w and bottom <= img_h :
+            break
+    img[top:bottom, left:right,:] = mask
+
+    return img,boxes
