@@ -130,7 +130,7 @@ if __name__=="__main__":
             cv2.rectangle(img_pad, (textOrg[0] - 5, textOrg[1]+baseLine - 5), (textOrg[0]+retval[0] + 5, textOrg[1]-retval[1] - 5), (0, 255, 0), 2)
             cv2.rectangle(img_pad, (textOrg[0] - 5,textOrg[1]+baseLine - 5), (textOrg[0]+retval[0] + 5, textOrg[1]-retval[1] - 5), (0, 255, 0), -1)
             cv2.putText(img_pad, textLabel, textOrg, cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 0), 1)
-        cv2.imwrite('./out_put_60epoch/{}.png'.format(name),img_pad)
+        cv2.imwrite('./out_put_60epoch/{}'.format(name),img_pad)
         #
         # plt.figure()
         # fig, ax = plt.subplots(1)
