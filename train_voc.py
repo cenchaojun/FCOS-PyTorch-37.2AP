@@ -11,7 +11,7 @@ import argparse
 import pandas as pd
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--epochs", type=int, default=1, help="number of epochs")
+parser.add_argument("--epochs", type=int, default=60, help="number of epochs")
 parser.add_argument("--batch_size", type=int, default=4, help="size of each image batch")
 parser.add_argument("--n_cpu", type=int, default=4, help="number of cpu threads to use during batch generation")
 parser.add_argument("--n_gpu", type=str, default='0', help="number of cpu threads to use during batch generation")
@@ -110,12 +110,13 @@ for epoch in range(EPOCHS):
         # record_pd = pd.DataFrame(
         #     columns=['global_step', 'epoch', 'cls_loss', 'cnt_loss', 'reg_loss', 'cost_time', 'lr', 'total_loss'])
 
-        new_row = {'global_step': GLOBAL_STEPS, 'epoch': epoch, 'cls_loss': losses[0].mean().item(), 'cnt_loss': losses[1].mean().item(), 'reg_loss': losses[2].mean().item(), 'cost_time':cost_time, 'lr':lr, 'total_loss': loss.mean().item()}
+        new_row = {'global_step': GLOBAL_STEPS, 'epoch': epoch+1, 'cls_loss': losses[0].mean().item(), 'cnt_loss': losses[1].mean().item(), 'reg_loss': losses[2].mean().item(), 'cost_time':cost_time, 'lr':lr, 'total_loss': loss.mean().item()}
         record_pd = record_pd.append(new_row, ignore_index=True)
 
 
         GLOBAL_STEPS += 1
-
+    # 保存模型的参数，
+    # 保存整个模型 torch.save(model,"./checkpoint/model_{}.pth".format(epoch + 1))
     torch.save(model.state_dict(),
                "./checkpoint60/model_{}.pth".format(epoch + 1))
 record_pd.to_csv('loss.csv',index=0)

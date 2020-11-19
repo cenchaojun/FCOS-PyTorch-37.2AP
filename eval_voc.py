@@ -113,6 +113,15 @@ def eval_ap_2d(gt_boxes, gt_labels, pred_boxes, pred_labels, pred_scores, iou_th
                 else:
                     fp = np.append(fp, 1)
                     tp = np.append(tp, 0)
+        # 试一下没有排序的方式
+        fp_nosort = fp
+        tp_nosort = tp
+        fp_nosort = np.cumsum(fp_nosort)
+        tp_nosort = np.cumsum(tp_nosort)
+        recall_nosort = tp_nosort / total_gts
+        precision_nosort = tp_nosort / np.maximum(tp_nosort + fp_nosort, np.finfo(np.float64).eps)
+        print("precision_nosort: {}".format(precision_nosort))
+        print("recall_nosort: {}".format(recall_nosort))
         # sort by score
         indices = np.argsort(-scores)
         fp = fp[indices]
@@ -145,7 +154,7 @@ if __name__=="__main__":
     # model=torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
     # print("INFO===>success convert BN to SyncBN")
     # model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("./checkpoint/model_30.pth",map_location=torch.device('cpu')))
+    model.load_state_dict(torch.load("./checkpoint60/model_60.pth",map_location=torch.device('cpu')))
     # model=convertSyncBNtoBN(model)
     # print("INFO===>success convert SyncBN to BN")
     model=model.cuda().eval()
@@ -169,7 +178,7 @@ if __name__=="__main__":
         print(num,end='\r')
 
     pred_boxes,pred_classes,pred_scores=sort_by_score(pred_boxes,pred_classes,pred_scores)
-    all_AP,precision, recall, fp, tp=eval_ap_2d(gt_boxes,gt_classes,pred_boxes,pred_classes,pred_scores,0.5,len(eval_dataset.CLASSES_NAME))
+    all_AP,precision, recall, fp, tp=eval_ap_2d(gt_boxes,gt_classes,pred_boxes,pred_classes,pred_scores,0.1,len(eval_dataset.CLASSES_NAME))
     # 之前放在了上面，可是我感觉没什么问题呀，只有一类，放在上面和下面没有什么问题吧
     # 有一个注意点没有想到，那就是这个precision和recall的格式是np.array格式，和之前的还不一样
     print("precision: {}".format(precision))
@@ -183,17 +192,17 @@ if __name__=="__main__":
     # 我把这个precision和recall的值都保存下来，我就不相信，结果还不一样
     precision_data = pd.DataFrame(precision)
     recall_data = pd.DataFrame(recall)
-    precision_data.to_csv('precision.csv')
-    recall_data.to_csv('recall.csv')
+    precision_data.to_csv('precision_60.csv')
+    recall_data.to_csv('recall_60.csv')
     # 输出一下precision和recall的均值，看行不行吧
     print("precision mean {0}".format(np.mean(precision)))
     print("recall mean {0}".format(np.mean(recall)))
     # 将precison和recall的曲线保存下来，看看什么情况吧
     # 使用的是OrderedDict这个库
-    pr_purve = OrderedDict(zip(recall,precision))
-    print("pr-purve len {0}".format(len(pr_purve)))
-    df = pd.DataFrame.from_dict(pr_purve,orient='index')
-    df.to_csv('precision_recall_purve.csv')
+    # pr_purve = OrderedDict(zip(recall,precision))
+    # print("pr-purve len {0}".format(len(pr_purve)))
+    # df = pd.DataFrame.from_dict(pr_purve,orient='index')
+    # df.to_csv('precision_recall_purve.csv')
     print("all classes AP=====>\n")
     for key,value in tqdm(all_AP.items()):
         print('ap for {} is {}'.format(eval_dataset.id2name[int(key)],value))

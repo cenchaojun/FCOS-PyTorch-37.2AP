@@ -20,6 +20,6 @@ class DefaultConfig():
     limit_range=[[-1,64],[64,128],[128,256],[256,512],[512,999999]]
 
     #inference
-    score_threshold=0.2
-    nms_iou_threshold=0.4
+    score_threshold=0.3
+    nms_iou_threshold=0.1
     max_detection_boxes_num=1000

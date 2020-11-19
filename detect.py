@@ -34,7 +34,7 @@ def preprocess_img(image,input_ksize):
 
     image_paded = np.zeros(shape=[nh+pad_h, nw+pad_w, 3],dtype=np.uint8)
     image_paded[:nh, :nw, :] = image_resized
-    return image_paded
+    return image_resized
     
 def convertSyncBNtoBN(module):
     module_output = module
@@ -79,7 +79,7 @@ if __name__=="__main__":
 
         #inference
         score_threshold=0.3
-        nms_iou_threshold=0.4
+        nms_iou_threshold=0.1
         max_detection_boxes_num=600
 
     model=FCOSDetector(mode="inference",config=Config)
@@ -98,7 +98,7 @@ if __name__=="__main__":
     names=os.listdir(root)
     for name in names:
         img_bgr=cv2.imread(root+name)
-        img_pad=preprocess_img(img_bgr,[800,1333])
+        img_pad=preprocess_img(img_bgr,[512,512])
         img=cv2.cvtColor(img_pad.copy(),cv2.COLOR_BGR2RGB)
         img1=transforms.ToTensor()(img)
         img1= transforms.Normalize([0.485,0.456,0.406], [0.229,0.224,0.225],inplace=True)(img1)
@@ -117,24 +117,39 @@ if __name__=="__main__":
         boxes=boxes[0].cpu().numpy().tolist()
         classes=classes[0].cpu().numpy().tolist()
         scores=scores[0].cpu().numpy().tolist()
-        plt.figure()
-        fig, ax = plt.subplots(1)
-        ax.imshow(img)
+        # 这个是源代码写的，有点问题，不方便检查，所以要自己重新写一下
         for i,box in enumerate(boxes):
             pt1=(int(box[0]),int(box[1]))
             pt2=(int(box[2]),int(box[3]))
-            img_pad=cv2.rectangle(img_pad,pt1,pt2,(0,255,0))
-            b_color = colors[int(classes[i]) - 1]
-            bbox = patches.Rectangle((box[0],box[1]),width=box[2]-box[0],height=box[3]-box[1],linewidth=1,facecolor='none',edgecolor=b_color)
-            ax.add_patch(bbox)
-            plt.text(box[0], box[1], s="%s %.3f"%(VOCDataset.CLASSES_NAME[int(classes[i])],scores[i]), color='white',
-                     verticalalignment='top',
-                     bbox={'color': b_color, 'pad': 0})
-        plt.axis('off')
-        plt.gca().xaxis.set_major_locator(NullLocator())
-        plt.gca().yaxis.set_major_locator(NullLocator())
-        plt.savefig('./out_images/{}'.format(name), bbox_inches='tight', pad_inches=0.0)
-        plt.close()
+            # TODO 需要将text的大小降低下来，要不然太大了，不好看
+            # TODO 再次检查一些
+            img_pad=cv2.rectangle(img_pad,pt1,pt2,(0,255,0),thickness=3)
+            textLabel = "%s %.3f"%(VOCDataset.CLASSES_NAME[int(classes[i])],scores[i])
+            (retval,baseLine) = cv2.getTextSize(textLabel,cv2.FONT_HERSHEY_COMPLEX,1,1)
+            textOrg = (int(box[0]), int(box[1]) - 0)
+            cv2.rectangle(img_pad, (textOrg[0] - 5, textOrg[1]+baseLine - 5), (textOrg[0]+retval[0] + 5, textOrg[1]-retval[1] - 5), (0, 255, 0), 2)
+            cv2.rectangle(img_pad, (textOrg[0] - 5,textOrg[1]+baseLine - 5), (textOrg[0]+retval[0] + 5, textOrg[1]-retval[1] - 5), (0, 255, 0), -1)
+            cv2.putText(img_pad, textLabel, textOrg, cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 0), 1)
+        cv2.imwrite('./out_put_60epoch/{}.png'.format(name),img_pad)
+        #
+        # plt.figure()
+        # fig, ax = plt.subplots(1)
+        # ax.imshow(img)
+        # for i,box in enumerate(boxes):
+        #     pt1=(int(box[0]),int(box[1]))
+        #     pt2=(int(box[2]),int(box[3]))
+        #     img_pad=cv2.rectangle(img_pad,pt1,pt2,(0,255,0))
+        #     b_color = colors[int(classes[i]) - 1]
+        #     bbox = patches.Rectangle((box[0],box[1]),width=box[2]-box[0],height=box[3]-box[1],linewidth=1,facecolor='none',edgecolor=b_color)
+        #     ax.add_patch(bbox)
+        #     plt.text(box[0], box[1], s="%s %.3f"%(VOCDataset.CLASSES_NAME[int(classes[i])],scores[i]), color='white',
+        #              verticalalignment='top',
+        #              bbox={'color': b_color, 'pad': 0})
+        # plt.axis('off')
+        # plt.gca().xaxis.set_major_locator(NullLocator())
+        # plt.gca().yaxis.set_major_locator(NullLocator())
+        # plt.savefig('./out_put_60epoch/{}'.format(name), bbox_inches='tight', pad_inches=0.0)
+        # plt.close()
 
 
 
