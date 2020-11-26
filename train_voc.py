@@ -11,8 +11,8 @@ import argparse
 import pandas as pd
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--epochs", type=int, default=60, help="number of epochs")
-parser.add_argument("--batch_size", type=int, default=4, help="size of each image batch")
+parser.add_argument("--epochs", type=int, default=20, help="number of epochs")
+parser.add_argument("--batch_size", type=int, default=2, help="size of each image batch")
 parser.add_argument("--n_cpu", type=int, default=4, help="number of cpu threads to use during batch generation")
 parser.add_argument("--n_gpu", type=str, default='0', help="number of cpu threads to use during batch generation")
 opt = parser.parse_args()
@@ -26,8 +26,8 @@ cudnn.deterministic = True
 random.seed(0)
 transform = Transforms()
 #  因为增加了augment，所以遮盖batchsize 的大小就变小了
-train_dataset = VOCDataset(root_dir='/home/cen/PycharmProjects/dataset/10m_tassel_dataset_voc/voc2007',resize_size=[800,1333],
-                           split='trainval',use_difficult=False,is_train=True,augment=transform)
+train_dataset = VOCDataset(root_dir='/home/cen/PycharmProjects/dataset/10m_crop1024_dataset_voc/voc2007',resize_size=[1024,1024],
+                           split='train',use_difficult=False,is_train=True,augment=transform)
 
 model = FCOSDetector(mode="training").cuda()
 # model = torch.nn.DataParallel(model)
@@ -45,7 +45,7 @@ TOTAL_STEPS = steps_per_epoch * EPOCHS
 WARMPUP_STEPS = 501
 
 GLOBAL_STEPS = 1
-LR_INIT = 2e-3
+LR_INIT = 2e-4
 LR_END = 2e-5
 optimizer = torch.optim.SGD(model.parameters(),lr =LR_INIT,momentum=0.9,weight_decay=0.0001)
 
@@ -118,8 +118,8 @@ for epoch in range(EPOCHS):
     # 保存模型的参数，
     # 保存整个模型 torch.save(model,"./checkpoint/model_{}.pth".format(epoch + 1))
     torch.save(model.state_dict(),
-               "./checkpoint60/model_{}.pth".format(epoch + 1))
-record_pd.to_csv('loss.csv',index=0)
+               "./checkout1024/model_{}.pth".format(epoch + 1))
+record_pd.to_csv('./loss/crop1024/loss.csv',index=0)
 
 
 

@@ -1,7 +1,7 @@
 
 import torch
 import torch.nn as nn
-from .config import DefaultConfig
+from model.config import DefaultConfig
 
 
 

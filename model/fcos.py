@@ -1,10 +1,12 @@
-from .head import ClsCntRegHead
-from .fpn_neck import FPN
-from .backbone.resnet import resnet50
+from model.head import ClsCntRegHead
+from model.fpn_neck import FPN
+from model.backbone.resnet import resnet50
 import torch.nn as nn
-from .loss import GenTargets,LOSS,coords_fmap2orig
+from model.loss import GenTargets,LOSS,coords_fmap2orig
 import torch
-from .config import DefaultConfig
+from model.config import DefaultConfig
+# from torchsummary import summary
+
 
 
 class FCOS(nn.Module):
@@ -15,6 +17,7 @@ class FCOS(nn.Module):
             config=DefaultConfig
         self.backbone=resnet50(pretrained=config.pretrained,if_include_top=False)
         self.fpn=FPN(config.fpn_out_channels,use_p5=config.use_p5)
+
         self.head=ClsCntRegHead(config.fpn_out_channels,config.class_num,
                                 config.use_GN_head,config.cnt_on_reg,config.prior)
         self.config=config
@@ -44,8 +47,9 @@ class FCOS(nn.Module):
         cnt_logits  list contains five [batch_size,1,h,w]
         reg_preds   list contains five [batch_size,4,h,w]
         '''
-        C3,C4,C5=self.backbone(x)
-        all_P=self.fpn([C3,C4,C5])
+        # C3,C4,C5=self.backbone(x)
+        C2, C3, C4, C5 = self.backbone(x)
+        all_P=self.fpn([C2,C3,C4,C5])
         cls_logits,cnt_logits,reg_preds=self.head(all_P)
         return [cls_logits,cnt_logits,reg_preds]
 
@@ -253,8 +257,14 @@ class FCOSDetector(nn.Module):
             boxes=self.clip_boxes(batch_imgs,boxes)
             return scores,classes,boxes
 
+if __name__ == '__main__':
 
-
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    net = FCOS()
+    print(net)
+    # fcos_net = net.fcos_body
+    # print(fcos_net)
+    # summary(net.to(device),(3,800,800))
     
 
 

@@ -129,15 +129,18 @@ class ResNet(nn.Module):
             layers.append(block(self.inplanes, planes))
 
         return nn.Sequential(*layers)
-
+    # 自己增加一个前面层
     def forward(self, x):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
 
-        x = self.layer1(x)
-        out3 = self.layer2(x)
+        out2 = self.layer1(x)
+        out3 = self.layer2(out2)
+        # 源码
+        # x = self.layer1(x)
+        # out3= self.layer2(x)
         out4 = self.layer3(out3)
         out5 = self.layer4(out4)
 
@@ -147,7 +150,8 @@ class ResNet(nn.Module):
             x = self.fc(x)
             return x
         else:
-            return (out3, out4, out5)
+             return (out2, out3, out4, out5)
+            # return (out3, out4, out5)
     
     def freeze_bn(self):
         for layer in self.modules():
