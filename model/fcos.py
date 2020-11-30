@@ -47,9 +47,10 @@ class FCOS(nn.Module):
         cnt_logits  list contains five [batch_size,1,h,w]
         reg_preds   list contains five [batch_size,4,h,w]
         '''
-        # C3,C4,C5=self.backbone(x)
-        C2, C3, C4, C5 = self.backbone(x)
-        all_P=self.fpn([C2,C3,C4,C5])
+        C3,C4,C5=self.backbone(x)
+        # C2, C3, C4, C5 = self.backbone(x)
+        # all_P=self.fpn([C2,C3,C4,C5])
+        all_P=self.fpn([C3,C4,C5])
         cls_logits,cnt_logits,reg_preds=self.head(all_P)
         return [cls_logits,cnt_logits,reg_preds]
 

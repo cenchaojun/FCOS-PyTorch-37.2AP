@@ -78,7 +78,7 @@ if __name__=="__main__":
         limit_range=[[-1,64],[64,128],[128,256],[256,512],[512,999999]]
 
         #inference
-        score_threshold=0.4
+        score_threshold=0.5
         nms_iou_threshold=0.1
         max_detection_boxes_num=600
 
@@ -87,18 +87,18 @@ if __name__=="__main__":
     # print("INFO===>success convert BN to SyncBN")
     # 如果遇到了权重不匹配，需要把并行训练这个模式给关掉
     # model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("./checkout1024/model_20.pth",map_location=torch.device('cpu')))
+    model.load_state_dict(torch.load("./20201130checkout/model_10.pth",map_location=torch.device('cpu')))
     # model=convertSyncBNtoBN(model)
     # print("INFO===>success convert SyncBN to BN")
     model=model.cuda().eval()
     print("===>success loading model")
 
     import os
-    root="./testout_crop/"
+    root="./20201130testimage/"
     names=os.listdir(root)
     for name in names:
         img_bgr=cv2.imread(root+name)
-        img_pad=preprocess_img(img_bgr,[1024,1024])
+        img_pad=preprocess_img(img_bgr,[512,512])
         img=cv2.cvtColor(img_pad.copy(),cv2.COLOR_BGR2RGB)
         img1=transforms.ToTensor()(img)
         img1= transforms.Normalize([0.485,0.456,0.406], [0.229,0.224,0.225],inplace=True)(img1)
@@ -131,7 +131,7 @@ if __name__=="__main__":
             cv2.rectangle(img_pad, (textOrg[0] - 2,textOrg[1]+baseLine - 2), (textOrg[0]+retval[0] + 5, textOrg[1]-retval[1] - 5), (0, 255, 0), -1)
             cv2.putText(img=img_pad,text=textLabel,org=textOrg,fontFace=cv2.FONT_HERSHEY_SIMPLEX,fontScale=0.4,color=(0, 0, 0),thickness=1)
             # cv2.putText(img_pad, textLabel, textOrg, cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 0), 1)
-        cv2.imwrite('./test1024result/{}'.format(name),img_pad)
+        cv2.imwrite('./20201130testimageresult/{}'.format(name),img_pad)
         #
         # plt.figure()
         # fig, ax = plt.subplots(1)

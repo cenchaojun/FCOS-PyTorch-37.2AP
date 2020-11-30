@@ -136,11 +136,11 @@ class ResNet(nn.Module):
         x = self.relu(x)
         x = self.maxpool(x)
 
-        out2 = self.layer1(x)
-        out3 = self.layer2(out2)
+        # out2 = self.layer1(x)
+        # out3 = self.layer2(out2)
         # 源码
-        # x = self.layer1(x)
-        # out3= self.layer2(x)
+        x = self.layer1(x)
+        out3= self.layer2(x)
         out4 = self.layer3(out3)
         out5 = self.layer4(out4)
 
@@ -150,7 +150,7 @@ class ResNet(nn.Module):
             x = self.fc(x)
             return x
         else:
-             return (out2, out3, out4, out5)
+             return (out3, out4, out5)
             # return (out3, out4, out5)
     
     def freeze_bn(self):

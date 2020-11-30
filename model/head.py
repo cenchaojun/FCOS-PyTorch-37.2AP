@@ -48,8 +48,10 @@ class ClsCntRegHead(nn.Module):
         self.apply(self.init_conv_RandomNormal)
         
         nn.init.constant_(self.cls_logits.bias,-math.log((1 - prior) / prior))
-        self.scale_exp = nn.ModuleList([ScaleExp(1.0) for _ in range(6)])
-    
+        # self.scale_exp = nn.ModuleList([ScaleExp(1.0) for _ in range(6)])
+        # 源码
+        self.scale_exp = nn.ModuleList([ScaleExp(1.0) for _ in range(5)])
+
     def init_conv_RandomNormal(self,module,std=0.01):
         if isinstance(module, nn.Conv2d):
             nn.init.normal_(module.weight, std=std)

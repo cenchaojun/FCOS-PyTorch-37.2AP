@@ -16,13 +16,13 @@ class DefaultConfig():
     cnt_on_reg=True
 
     #training
-    strides=[4,8,16,32,64,128]
-    limit_range=[[-1,32],[32,64],[64,128],[128,256],[256,512],[512,999999]]
-    # #training
-    # strides=[8,16,32,64,128]
-    # limit_range=[[-1,64],[64,128],[128,256],[256,512],[512,999999]]
+    # strides=[4,8,16,32,64,128]
+    # limit_range=[[-1,32],[32,64],[64,128],[128,256],[256,512],[512,999999]]
+    #training
+    strides=[8,16,32,64,128]
+    limit_range=[[-1,64],[64,128],[128,256],[256,512],[512,999999]]
 
     #inference
-    score_threshold=0.5
+    score_threshold=0.55
     nms_iou_threshold=0.1
     max_detection_boxes_num=1000

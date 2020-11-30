@@ -7,9 +7,9 @@
 import os
 import shutil
 from tqdm import tqdm
-root = '/home/cen/PycharmProjects/dataset/10m_crop1024_dataset_voc/voc2007'
+root = '/home/cen/PycharmProjects/dataset/20201029datasetvoc/voc2007'
 origin_path = os.path.join(root,'JPEGImages')
-save_path = '/home/cen/PycharmProjects/FCOS-PyTorch-37.2AP/testxmlimage'
+save_path = '/home/cen/PycharmProjects/FCOS-PyTorch-37.2AP/20201130testimage'
 test_file_path = os.path.join(root,'ImageSets/Main/test.txt')
 
 with open(test_file_path,'r') as f:
