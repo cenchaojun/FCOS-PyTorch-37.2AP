@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Time    : 2020/11/30 上午11:19
+# @Time    : 2020/12/4 上午9:34
 # @Author  : cenchaojun
-# @File    : testandxml.py
+# @File    : detect1024.py
 # @Software: PyCharm
 import cv2
 from model.fcos import FCOSDetector
@@ -15,7 +15,7 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from matplotlib.ticker import NullLocator
 
-# 这个主要依靠模型的能力来解决了标注样本的问题
+
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def preprocess_img(image, input_ksize):
@@ -63,34 +63,6 @@ def convertSyncBNtoBN(module):
 
 
 if __name__ == "__main__":
-    prefix_str = '''<annotation>
-    	<folder>/home/cen/PycharmProjects/dataset/testandxml</folder>
-    	<filename>{}</filename>
-    	<path>/home/cen/PycharmProjects/dataset/testandxml</path>
-    	<source>
-    		<database>Henan Tassel Database</database>
-    	</source>
-    	<size>
-    		<width>512</width>
-    		<height>512</height>
-    		<depth>3</depth>
-    	</size>
-    	<segmented>0</segmented>'''
-
-    suffix = '</annotation>'
-
-    new_head = '''
-        <object>
-    		<name>tassel</name>
-    		<difficult>0</difficult>
-    		<bndbox>
-    			<xmin>{}</xmin>
-    			<ymin>{}</ymin>
-    			<xmax>{}</xmax>
-    			<ymax>{}</ymax>
-    		</bndbox>
-    	</object>'''
-
     cmap = plt.get_cmap('tab20b')
     colors = [cmap(i) for i in np.linspace(0, 1, 20)]
 
@@ -128,7 +100,7 @@ if __name__ == "__main__":
     # print("INFO===>success convert BN to SyncBN")
     # 如果遇到了权重不匹配，需要把并行训练这个模式给关掉
     # model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("./20201130checkout/model_10.pth", map_location=torch.device('cpu')))
+    model.load_state_dict(torch.load("./fewcheckpoint1024/model_60.pth", map_location=torch.device('cpu')))
     # model=convertSyncBNtoBN(model)
     # print("INFO===>success convert SyncBN to BN")
     model = model.cuda().eval()
@@ -136,11 +108,11 @@ if __name__ == "__main__":
 
     import os
 
-    root = "/home/cen/PycharmProjects/dataset/10m_crop512image_20201109/10m/"
+    root = "/home/cen/PycharmProjects/dataset/20201203dataset/crop1024valdatasetimage/"
     names = os.listdir(root)
     for name in names:
         img_bgr = cv2.imread(root + name)
-        img_pad = preprocess_img(img_bgr, [512, 512])
+        img_pad = preprocess_img(img_bgr, [1024, 1024])
         img = cv2.cvtColor(img_pad.copy(), cv2.COLOR_BGR2RGB)
         img1 = transforms.ToTensor()(img)
         img1 = transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225], inplace=True)(img1)
@@ -159,32 +131,44 @@ if __name__ == "__main__":
         classes = classes[0].cpu().numpy().tolist()
         scores = scores[0].cpu().numpy().tolist()
         # 这个是源代码写的，有点问题，不方便检查，所以要自己重新写一下
-        count = 0
-        head_str =''
         for i, box in enumerate(boxes):
             pt1 = (int(box[0]), int(box[1]))
             pt2 = (int(box[2]), int(box[3]))
             # TODO 需要将text的大小降低下来，要不然太大了，不好看
             # TODO 再次检查一些
-            count += 1
-            head_str = head_str + new_head.format(int(box[0]), int(box[1]),
-                                                  int(box[2]), int(box[3]))
-        if count == 0:
-            continue
-        xml = prefix_str.format(name) + head_str + '\n'+ suffix
-        # todo xml name
-        xml_name = name[:-4] + '.xml'
-        with open('/home/cen/PycharmProjects/dataset/10m_crop512testimage_20201130xml/{0}'.format(xml_name),'w',encoding="utf-8") as f:
-            f.write(xml)
-        #     img_pad = cv2.rectangle(img_pad, pt1, pt2, (0, 255, 0), thickness=3)
-        #     textLabel = "%s %.3f" % (VOCDataset.CLASSES_NAME[int(classes[i])], scores[i])
-        #     (retval, baseLine) = cv2.getTextSize(textLabel, cv2.FONT_HERSHEY_COMPLEX, 0.4, 1)
-        #     textOrg = (int(box[0]), int(box[1]))
-        #     cv2.rectangle(img_pad, (textOrg[0] - 2, textOrg[1] + baseLine - 2),
-        #                   (textOrg[0] + retval[0] + 5, textOrg[1] - retval[1] - 5), (0, 255, 0), 1)
-        #     cv2.rectangle(img_pad, (textOrg[0] - 2, textOrg[1] + baseLine - 2),
-        #                   (textOrg[0] + retval[0] + 5, textOrg[1] - retval[1] - 5), (0, 255, 0), -1)
-        #     cv2.putText(img=img_pad, text=textLabel, org=textOrg, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.4,
-        #                 color=(0, 0, 0), thickness=1)
-        #     # cv2.putText(img_pad, textLabel, textOrg, cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 0), 1)
-        # cv2.imwrite('./20201130testimageresult/{}'.format(name), img_pad)
+            img_pad = cv2.rectangle(img_pad, pt1, pt2, (0, 255, 0), thickness=3)
+            textLabel = "%s %.3f" % (VOCDataset.CLASSES_NAME[int(classes[i])], scores[i])
+            (retval, baseLine) = cv2.getTextSize(textLabel, cv2.FONT_HERSHEY_COMPLEX, 0.4, 1)
+            textOrg = (int(box[0]), int(box[1]))
+            cv2.rectangle(img_pad, (textOrg[0] - 2, textOrg[1] + baseLine - 2),
+                          (textOrg[0] + retval[0] + 5, textOrg[1] - retval[1] - 5), (0, 255, 0), 1)
+            cv2.rectangle(img_pad, (textOrg[0] - 2, textOrg[1] + baseLine - 2),
+                          (textOrg[0] + retval[0] + 5, textOrg[1] - retval[1] - 5), (0, 255, 0), -1)
+            cv2.putText(img=img_pad, text=textLabel, org=textOrg, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.4,
+                        color=(0, 0, 0), thickness=1)
+            # cv2.putText(img_pad, textLabel, textOrg, cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 0), 1)
+        cv2.imwrite('./fewcrop1024val/{}'.format(name), img_pad)
+        #
+        # plt.figure()
+        # fig, ax = plt.subplots(1)
+        # ax.imshow(img)
+        # for i,box in enumerate(boxes):
+        #     pt1=(int(box[0]),int(box[1]))
+        #     pt2=(int(box[2]),int(box[3]))
+        #     img_pad=cv2.rectangle(img_pad,pt1,pt2,(0,255,0))
+        #     b_color = colors[int(classes[i]) - 1]
+        #     bbox = patches.Rectangle((box[0],box[1]),width=box[2]-box[0],height=box[3]-box[1],linewidth=1,facecolor='none',edgecolor=b_color)
+        #     ax.add_patch(bbox)
+        #     plt.text(box[0], box[1], s="%s %.3f"%(VOCDataset.CLASSES_NAME[int(classes[i])],scores[i]), color='white',
+        #              verticalalignment='top',
+        #              bbox={'color': b_color, 'pad': 0})
+        # plt.axis('off')
+        # plt.gca().xaxis.set_major_locator(NullLocator())
+        # plt.gca().yaxis.set_major_locator(NullLocator())
+        # plt.savefig('./out_put_60epoch/{}'.format(name), bbox_inches='tight', pad_inches=0.0)
+        # plt.close()
+
+
+
+
+

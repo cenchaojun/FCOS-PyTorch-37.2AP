@@ -78,7 +78,7 @@ if __name__=="__main__":
         limit_range=[[-1,64],[64,128],[128,256],[256,512],[512,999999]]
 
         #inference
-        score_threshold=0.5
+        score_threshold=0.4
         nms_iou_threshold=0.1
         max_detection_boxes_num=600
 
@@ -87,14 +87,14 @@ if __name__=="__main__":
     # print("INFO===>success convert BN to SyncBN")
     # 如果遇到了权重不匹配，需要把并行训练这个模式给关掉
     # model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("./20201130checkout/model_10.pth",map_location=torch.device('cpu')))
+    model.load_state_dict(torch.load("./fewcheckpoint/model_30.pth",map_location=torch.device('cpu')))
     # model=convertSyncBNtoBN(model)
     # print("INFO===>success convert SyncBN to BN")
     model=model.cuda().eval()
     print("===>success loading model")
 
     import os
-    root="./20201130testimage/"
+    root="/home/cen/PycharmProjects/dataset/20201203dataset/crop512valdatasetimage/"
     names=os.listdir(root)
     for name in names:
         img_bgr=cv2.imread(root+name)
@@ -131,7 +131,7 @@ if __name__=="__main__":
             cv2.rectangle(img_pad, (textOrg[0] - 2,textOrg[1]+baseLine - 2), (textOrg[0]+retval[0] + 5, textOrg[1]-retval[1] - 5), (0, 255, 0), -1)
             cv2.putText(img=img_pad,text=textLabel,org=textOrg,fontFace=cv2.FONT_HERSHEY_SIMPLEX,fontScale=0.4,color=(0, 0, 0),thickness=1)
             # cv2.putText(img_pad, textLabel, textOrg, cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 0), 1)
-        cv2.imwrite('./20201130testimageresult/{}'.format(name),img_pad)
+        cv2.imwrite('./fewcrop512test/{}'.format(name),img_pad)
         #
         # plt.figure()
         # fig, ax = plt.subplots(1)
