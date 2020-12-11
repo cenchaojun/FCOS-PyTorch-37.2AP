@@ -1,6 +1,7 @@
 from model.head import ClsCntRegHead
 from model.fpn_neck import FPN
 from model.backbone.resnet import resnet50
+from model.backbone.vovnet import vovnet39
 import torch.nn as nn
 from model.loss import GenTargets,LOSS,coords_fmap2orig
 import torch
@@ -15,7 +16,10 @@ class FCOS(nn.Module):
         super().__init__()
         if config is None:
             config=DefaultConfig
-        self.backbone=resnet50(pretrained=config.pretrained,if_include_top=False)
+        if config.backbone == 'vovnet39':
+            self.backbone=vovnet39(pretrained=config.pretrained)
+        elif config.backbone == 'resnet50':
+            self.backbone=resnet50(pretrained=config.pretrained,if_include_top=False)
         self.fpn=FPN(config.fpn_out_channels,use_p5=config.use_p5)
 
         self.head=ClsCntRegHead(config.fpn_out_channels,config.class_num,

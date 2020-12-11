@@ -1,9 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Time    : 2020/12/4 上午9:18
+# @Time    : 2020/12/8 上午10:08
 # @Author  : cenchaojun
-# @File    : eval_voc1024.py
+# @File    : trainval1024.py
 # @Software: PyCharm
+from model.fcos import FCOSDetector
+import torch
+from dataset.VOC_dataset import VOCDataset
+import math, time
+from dataset.augment import Transforms
+import os
+import numpy as np
+import random
+import torch.backends.cudnn as cudnn
+import argparse
+import pandas as pd
 import torch
 import numpy as np
 import cv2
@@ -135,20 +146,15 @@ def eval_ap_2d(gt_boxes, gt_labels, pred_boxes, pred_labels, pred_scores, iou_th
         indices = np.argsort(-scores)
         fp = fp[indices]
         tp = tp[indices]
-        # 可以写一个for循环，但是iwo还是想用判断语句，简单点
-        # if np.all(fp == 0) :
-        #     fp_num = 0
-        # else:
-        #     fp_num = dict(Counter(fp).items())[1.0]
-        # print("fp counter : {0}".format(fp_num))
-
-        # tp_num = dict(Counter(tp).items())[1.0]
-        # print("tp counter : {0}".format(tp_num))
-        # precision_value = tp_num / (tp_num + fp_num)
-        # recall_value = tp_num / (total_gts)
-        # print("precision_value: {0}".format(precision_value))
-        # print("recall_value: {0}".format(recall_value))
-        # print("total_gt_number: {0}".format(total_gts))
+        fp_num = dict(Counter(fp).items())[1.0]
+        print("fp counter : {0}".format(fp_num))
+        tp_num = dict(Counter(tp).items())[1.0]
+        print("tp counter : {0}".format(tp_num))
+        precision_value = tp_num / (tp_num + fp_num)
+        recall_value = tp_num / (total_gts)
+        print("precision_value: {0}".format(precision_value))
+        print("recall_value: {0}".format(recall_value))
+        print("total_gt_number: {0}".format(total_gts))
 
         # compute cumulative false positives and true positives
         fp = np.cumsum(fp)
@@ -166,80 +172,121 @@ def eval_ap_2d(gt_boxes, gt_labels, pred_boxes, pred_labels, pred_scores, iou_th
     return all_ap, precision, recall, fp, tp
 
 
-if __name__ == "__main__":
-    from model.fcos import FCOSDetector
-    from detect import convertSyncBNtoBN
-    from dataset.VOC_dataset import VOCDataset
+parser = argparse.ArgumentParser()
+parser.add_argument("--epochs", type=int, default=60, help="number of epochs")
+parser.add_argument("--batch_size", type=int, default=4, help="size of each image batch")
+parser.add_argument("--n_cpu", type=int, default=4, help="number of cpu threads to use during batch generation")
+parser.add_argument("--n_gpu", type=str, default='0', help="number of cpu threads to use during batch generation")
+opt = parser.parse_args()
+os.environ["CUDA_VISIBLE_DEVICES"] = opt.n_gpu
+torch.manual_seed(0)
+torch.cuda.manual_seed(0)
+torch.cuda.manual_seed_all(0)
+np.random.seed(0)
+cudnn.benchmark = False
+cudnn.deterministic = True
+random.seed(0)
+transform = Transforms()
+#  因为增加了augment，所以遮盖batchsize 的大小就变小了
+train_dataset = VOCDataset(root_dir='/home/cen/PycharmProjects/dataset/20201203dataset/fewdataset/voc2007',resize_size=[1024,1024],
+                           split='1024train',use_difficult=False,is_train=True,augment=transform)
 
-    eval_dataset = VOCDataset(root_dir='/home/cen/PycharmProjects/dataset/20201203dataset/fewdataset/voc2007',
-                              resize_size=[1024, 1024],
-                              split='test', use_difficult=False, is_train=False, augment=None)
-    print("INFO===>eval dataset has %d imgs" % len(eval_dataset))
-    eval_loader = torch.utils.data.DataLoader(eval_dataset, batch_size=1, shuffle=False,
-                                              collate_fn=eval_dataset.collate_fn)
+model = FCOSDetector(mode="training").cuda()
+# model = torch.nn.DataParallel(model)
+# model.load_state_dict(torch.load('/home/cen/PycharmProjects/FCOS-PyTorch-37.2AP/checkpoint60/model_30.pth'))
 
-    model = FCOSDetector(mode="inference")
-    # model=torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-    # print("INFO===>success convert BN to SyncBN")
-    # model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("./newlr/model_120.pth", map_location=torch.device('cpu')))
-    # model=convertSyncBNtoBN(model)
-    # print("INFO===>success convert SyncBN to BN")
-    model = model.cuda().eval()
-    print("===>success loading model")
+BATCH_SIZE = opt.batch_size
+EPOCHS = opt.epochs
+#WARMPUP_STEPS_RATIO = 0.12
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True,
+                                           collate_fn=train_dataset.collate_fn,
+                                           num_workers=opt.n_cpu, worker_init_fn=np.random.seed(0))
+print("total_images : {}".format(len(train_dataset)))
+steps_per_epoch = len(train_dataset) // BATCH_SIZE
+TOTAL_STEPS = steps_per_epoch * EPOCHS
+WARMPUP_STEPS = 501
 
-    gt_boxes = []
-    gt_classes = []
-    pred_boxes = []
-    pred_classes = []
-    pred_scores = []
-    num = 0
-    for img, boxes, classes in tqdm(eval_loader):
-        with torch.no_grad():
-            out = model(img.cuda())
-            pred_boxes.append(out[2][0].cpu().numpy())
-            pred_classes.append(out[1][0].cpu().numpy())
-            pred_scores.append(out[0][0].cpu().numpy())
-        gt_boxes.append(boxes[0].numpy())
-        gt_classes.append(classes[0].numpy())
-        num += 1
-        print(num, end='\r')
+GLOBAL_STEPS = 1
+LR_INIT = 2e-4
+LR_END = 2e-5
+optimizer = torch.optim.SGD(model.parameters(),lr =LR_INIT,momentum=0.9,weight_decay=0.0001)
 
-    pred_boxes, pred_classes, pred_scores = sort_by_score(pred_boxes, pred_classes, pred_scores)
-    all_AP, precision, recall, fp, tp = eval_ap_2d(gt_boxes, gt_classes, pred_boxes, pred_classes, pred_scores, 0.1,
-                                                   len(eval_dataset.CLASSES_NAME))
-    # FP_num = dict(Counter(fp).items())
-    # print("FP_num : {0}".format(FP_num))
-    # 之前放在了上面，可是我感觉没什么问题呀，只有一类，放在上面和下面没有什么问题吧
-    # 有一个注意点没有想到，那就是这个precision和recall的格式是np.array格式，和之前的还不一样
-    # print("precision: {}".format(precision))
-    # print("recall: {}".format(recall))
-    # print("fp {}".format(np.sum(fp)))
-    # print("tp{} ".format(np.sum(tp)))
-    # print("precision size {}".format(precision.size))
-    # print("recall size {}".format(recall.size))
-    # print("precision shape {}".format(precision.shape))
-    # print("recall shape {}".format(recall.shape))
-    # 我把这个precision和recall的值都保存下来，我就不相信，结果还不一样
-    precision_data = pd.DataFrame(precision)
-    recall_data = pd.DataFrame(recall)
-    precision_data.to_csv('precision_30crop1024fewagain.csv')
-    recall_data.to_csv('recall_30crop1024fewagain.csv')
-    # 输出一下precision和recall的均值，看行不行吧
-    # print("precision mean {0}".format(np.mean(precision)))
-    # print("recall mean {0}".format(np.mean(recall)))
-    # 将precison和recall的曲线保存下来，看看什么情况吧
-    # 使用的是OrderedDict这个库
-    # pr_purve = OrderedDict(zip(recall,precision))
-    # print("pr-purve len {0}".format(len(pr_purve)))
-    # df = pd.DataFrame.from_dict(pr_purve,orient='index')
-    # df.to_csv('precision_recall_purve.csv')
-    print("all classes AP=====>\n")
-    for key, value in tqdm(all_AP.items()):
-        print('ap for {} is {}'.format(eval_dataset.id2name[int(key)], value))
-    mAP = 0.
-    for class_id, class_mAP in tqdm(all_AP.items()):
-        mAP += float(class_mAP)
-    mAP /= (len(eval_dataset.CLASSES_NAME) - 1)
-    print("mAP=====>%.3f\n" % mAP)
+# def lr_func():
+#      if GLOBAL_STEPS < WARMPUP_STEPS:
+#          lr = GLOBAL_STEPS / WARMPUP_STEPS * LR_INIT
+#      else:
+#          lr = LR_END + 0.5 * (LR_INIT - LR_END) * (
+#              (1 + math.cos((GLOBAL_STEPS - WARMPUP_STEPS) / (TOTAL_STEPS - WARMPUP_STEPS) * math.pi))
+#          )
+#      return float(lr)
+
+
+model.train()
+# 加入这个保存的变量，使得最后能够保存数据
+record_pd = pd.DataFrame(columns=['global_step', 'epoch', 'cls_loss', 'cnt_loss', 'reg_loss', 'cost_time', 'lr', 'total_loss'])
+for epoch in range(EPOCHS):
+    for epoch_step, data in enumerate(train_loader):
+
+        batch_imgs, batch_boxes, batch_classes = data
+        batch_imgs = batch_imgs.cuda()
+        batch_boxes = batch_boxes.cuda()
+        batch_classes = batch_classes.cuda()
+
+        #lr = lr_func()
+        if GLOBAL_STEPS < WARMPUP_STEPS:
+           lr = float(GLOBAL_STEPS / WARMPUP_STEPS * LR_INIT)
+           for param in optimizer.param_groups:
+               param['lr'] = lr
+        if GLOBAL_STEPS == 20001:
+           lr = LR_INIT * 0.1
+           for param in optimizer.param_groups:
+               param['lr'] = lr
+        if GLOBAL_STEPS == 27001:
+           lr = LR_INIT * 0.01
+           for param in optimizer.param_groups:
+              param['lr'] = lr
+        start_time = time.time()
+
+        optimizer.zero_grad()
+        losses = model([batch_imgs, batch_boxes, batch_classes])
+        loss = losses[-1]
+        loss.mean().backward()
+        optimizer.step()
+
+        end_time = time.time()
+        cost_time = int((end_time - start_time) * 1000)
+        #TODO 保存一下模型的输出曲线，保存在一个文件夹中
+        print(
+            "global_steps:%d epoch:%d steps:%d/%d cls_loss:%.4f cnt_loss:%.4f reg_loss:%.4f cost_time:%dms lr=%.4e total_loss:%.4f" % \
+            (GLOBAL_STEPS, epoch + 1, epoch_step + 1, steps_per_epoch, losses[0].mean(), losses[1].mean(),
+             losses[2].mean(), cost_time, lr, loss.mean()))
+        # 明白了tensor转为变量的的方法
+        # clc_loss = losses[0].mean().item()
+        # cnt_loss = losses[1].mean().item()
+        # reg_loss = losses[2].mean().item()
+        # total_loss = loss.mean().item()
+        # print(clc_loss)
+        # print(cnt_loss)
+        # print(reg_loss)
+        # print(total_loss)
+        # record_pd = pd.DataFrame(
+        #     columns=['global_step', 'epoch', 'cls_loss', 'cnt_loss', 'reg_loss', 'cost_time', 'lr', 'total_loss'])
+
+        new_row = {'global_step': GLOBAL_STEPS, 'epoch': epoch+1, 'cls_loss': losses[0].mean().item(), 'cnt_loss': losses[1].mean().item(), 'reg_loss': losses[2].mean().item(), 'cost_time':cost_time, 'lr':lr, 'total_loss': loss.mean().item()}
+        record_pd = record_pd.append(new_row, ignore_index=True)
+
+
+        GLOBAL_STEPS += 1
+    # 保存模型的参数，
+    # 保存整个模型 torch.save(model,"./checkpoint/model_{}.pth".format(epoch + 1))
+    torch.save(model.state_dict(),
+               "./20201208fewcheckpointcrop1024/model_{}.pth".format(epoch + 1))
+    if epoch > 30 and epoch%10==0:
+        # 进行验证
+        # 进行验证
+        pass
+
+record_pd.to_csv('./loss/20201208fewcheckpointcrop1024loss/loss.csv',index=0)
+
+
 

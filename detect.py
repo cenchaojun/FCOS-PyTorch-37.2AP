@@ -94,7 +94,7 @@ if __name__=="__main__":
     print("===>success loading model")
 
     import os
-    root="/home/cen/PycharmProjects/dataset/20201203dataset/crop512valdatasetimage/"
+    root="/home/cen/PycharmProjects/dataset/20201203dataset/2020newfewcrop1024/"
     names=os.listdir(root)
     for name in names:
         img_bgr=cv2.imread(root+name)

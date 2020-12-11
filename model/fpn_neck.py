@@ -2,14 +2,22 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 from model.semodel import *
+from model.config import DefaultConfig as cfg
 
 class FPN(nn.Module):
     '''only for resnet50,101,152'''
     def __init__(self,features=256,use_p5=True):
         super(FPN,self).__init__()
-        self.prj_5 = nn.Conv2d(2048, features, kernel_size=1)
-        self.prj_4 = nn.Conv2d(1024, features, kernel_size=1)
-        self.prj_3 = nn.Conv2d(512, features, kernel_size=1)
+        if cfg.backbone == 'resnet50':
+            print("backbone use resnet50")
+            self.prj_5 = nn.Conv2d(2048, features, kernel_size=1)
+            self.prj_4 = nn.Conv2d(1024, features, kernel_size=1)
+            self.prj_3 = nn.Conv2d(512, features, kernel_size=1)
+        elif cfg.backbone == 'vovnet39':
+            print("backbone use vovnet39")
+            self.prj_5 = nn.Conv2d(1024, features, kernel_size=1)
+            self.prj_4 = nn.Conv2d(768, features, kernel_size=1)
+            self.prj_3 = nn.Conv2d(512, features, kernel_size=1)
         # self.prj_2 = nn.Conv2d(256, features, kernel_size=1)
         self.conv_5 =nn.Conv2d(features, features, kernel_size=3, padding=1)
         self.conv_4 =nn.Conv2d(features, features, kernel_size=3, padding=1)

@@ -227,3 +227,10 @@ def resnet152(pretrained=False, **kwargs):
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet152']))
     return model
+if __name__ == '__main__':
+    test_inp = torch.randn((1, 3, 1024, 1024)).to("cuda")
+    model = resnet50()
+    model.cuda()
+    out = model(test_inp)
+    for i in range(len(out)):
+        print("模型的C%d输出尺寸是："%(i+3),out[i].size())

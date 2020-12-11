@@ -1,5 +1,6 @@
 class DefaultConfig():
     #backbone
+    backbone = 'resnet50'  # vovnet39 or resnet50
     pretrained=True
     freeze_stage_1=True
     freeze_bn= True

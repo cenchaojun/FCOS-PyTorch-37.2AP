@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Time    : 2020/12/3 下午10:36
+# @Time    : 2020/12/7 上午9:00
 # @Author  : cenchaojun
-# @File    : train1024.py
+# @File    : train1024from0again.py
 # @Software: PyCharm
 
 from model.fcos import FCOSDetector
@@ -33,12 +33,12 @@ cudnn.deterministic = True
 random.seed(0)
 transform = Transforms()
 #  因为增加了augment，所以遮盖batchsize 的大小就变小了
-train_dataset = VOCDataset(root_dir='/home/cen/PycharmProjects/dataset/20201208dataset/fewdataset/voc2007',resize_size=[1024,1024],
+train_dataset = VOCDataset(root_dir='/home/cen/PycharmProjects/dataset/20201203dataset/fewdataset/voc2007',resize_size=[1024,1024],
                            split='1024train',use_difficult=False,is_train=True,augment=transform)
 
 model = FCOSDetector(mode="training").cuda()
 # model = torch.nn.DataParallel(model)
-# model.load_state_dict(torch.load('/home/cen/PycharmProjects/FCOS-PyTorch-37.2AP/checkpoint60/model_30.pth'))
+# model.load_state_dict(torch.load('/home/cen/PycharmProjects/FCOS-PyTorch-37.2AP/fewcheckpoint1024/model_60.pth'))
 
 BATCH_SIZE = opt.batch_size
 EPOCHS = opt.epochs
@@ -82,11 +82,11 @@ for epoch in range(EPOCHS):
            lr = float(GLOBAL_STEPS / WARMPUP_STEPS * LR_INIT)
            for param in optimizer.param_groups:
                param['lr'] = lr
-        if GLOBAL_STEPS == 2000:
+        if GLOBAL_STEPS == 20001:
            lr = LR_INIT * 0.1
            for param in optimizer.param_groups:
                param['lr'] = lr
-        if GLOBAL_STEPS == 4700:
+        if GLOBAL_STEPS == 27001:
            lr = LR_INIT * 0.01
            for param in optimizer.param_groups:
               param['lr'] = lr
@@ -125,8 +125,8 @@ for epoch in range(EPOCHS):
     # 保存模型的参数，
     # 保存整个模型 torch.save(model,"./checkpoint/model_{}.pth".format(epoch + 1))
     torch.save(model.state_dict(),
-               "./20201210model/model_{}.pth".format(epoch + 1))
-record_pd.to_csv('./loss/20201210model/loss.csv',index=0)
+               "./fewcheckpointfrom0again/model_{}.pth".format(epoch + 1))
+record_pd.to_csv('./loss/fewcheckpointfrom0again/loss.csv',index=0)
 
 
 

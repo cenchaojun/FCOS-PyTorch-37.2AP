@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Time    : 2020/12/4 上午9:34
+# @Time    : 2020/12/10 下午4:35
 # @Author  : cenchaojun
-# @File    : detect1024.py
+# @File    : detect1024andwritetxt.py
 # @Software: PyCharm
 import cv2
 from model.fcos import FCOSDetector
@@ -168,8 +168,3 @@ if __name__ == "__main__":
         # plt.gca().yaxis.set_major_locator(NullLocator())
         # plt.savefig('./out_put_60epoch/{}'.format(name), bbox_inches='tight', pad_inches=0.0)
         # plt.close()
-
-
-
-
-

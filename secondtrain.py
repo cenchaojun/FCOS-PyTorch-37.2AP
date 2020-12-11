@@ -34,7 +34,7 @@ random.seed(0)
 transform = Transforms()
 #  因为增加了augment，所以遮盖batchsize 的大小就变小了
 train_dataset = VOCDataset(root_dir='/home/cen/PycharmProjects/dataset/20201208dataset/fewdataset/voc2007',resize_size=[1024,1024],
-                           split='1024train',use_difficult=False,is_train=True,augment=transform)
+                           split='second1024train',use_difficult=False,is_train=True,augment=transform)
 
 model = FCOSDetector(mode="training").cuda()
 # model = torch.nn.DataParallel(model)
@@ -125,8 +125,8 @@ for epoch in range(EPOCHS):
     # 保存模型的参数，
     # 保存整个模型 torch.save(model,"./checkpoint/model_{}.pth".format(epoch + 1))
     torch.save(model.state_dict(),
-               "./20201210model/model_{}.pth".format(epoch + 1))
-record_pd.to_csv('./loss/20201210model/loss.csv',index=0)
+               "./secondmodel/model_{}.pth".format(epoch + 1))
+record_pd.to_csv('./loss/secondmodel/loss.csv',index=0)
 
 
 
